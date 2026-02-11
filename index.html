@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>動物隨機賽跑 - 8人亂鬥版</title>
+    <title>30人亂鬥 - 動物賽跑</title>
     <style>
         :root {
             --grass-color: #7CFC00;
-            --ui-bg: rgba(255, 255, 255, 0.95);
+            --track-bg: rgba(255, 255, 255, 0.9);
+            --ui-bg: #f0f2f5;
+            --accent-color: #ff4757;
         }
 
         body {
@@ -15,262 +17,319 @@
             margin: 0;
             padding: 0;
             background-color: var(--grass-color);
-            overflow: hidden; /* 防止滾動 */
-            touch-action: manipulation;
+            overflow: hidden;
             user-select: none;
-        }
-
-        /* --- 黑色貴賓狗專屬樣式 --- */
-        .black-poodle-filter {
-            filter: grayscale(100%) brightness(30%); /* 讓 Emoji 變黑 */
+            touch-action: manipulation;
         }
 
         /* --- UI 通用 --- */
         .screen {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             z-index: 10;
-            transition: opacity 0.3s;
-        }
-        .hidden { display: none !important; opacity: 0; }
-
-        h1 { 
-            color: #333; 
-            text-shadow: 2px 2px 0px white; 
-            margin: 10px 0; 
-            font-size: 24px;
-        }
-        
-        button {
-            padding: 12px 30px;
-            font-size: 1.2rem;
-            border: none;
-            border-radius: 50px;
-            background: #ff4757;
-            color: white;
-            cursor: pointer;
-            box-shadow: 0 4px 0 #c0392b;
-            transition: transform 0.1s;
-            margin-top: 15px;
-        }
-        button:active { transform: translateY(4px); box-shadow: none; }
-        button:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
-
-        /* --- 1. 選角畫面 --- */
-        #selection-screen { background: rgba(0,0,0,0.3); overflow-y: auto; }
-        
-        .selection-container {
-            background: var(--ui-bg);
-            padding: 15px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            max-width: 90%;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            background: var(--ui-bg);
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .hidden { transform: translateY(-100%); }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+
+        /* --- 1. 選角設定畫面 --- */
+        #setup-screen {
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
         }
 
-        .animal-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr); /* 一排5個 */
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .animal-btn {
-            width: 55px;
-            height: 55px;
-            font-size: 30px;
-            border: 2px solid #ddd;
-            border-radius: 15px;
+        .header-panel {
             background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; }
+
+        /* 動物選擇工具列 */
+        .animal-toolbar {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        .tool-btn {
+            font-size: 28px;
+            min-width: 50px;
+            height: 50px;
+            background: #eee;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+        .tool-btn.active {
+            background: #ffeaa7;
+            border-color: #fdcb6e;
+            transform: scale(1.1);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* 30個座位網格 */
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 手機版一排5個 */
+            gap: 8px;
+            padding-bottom: 80px; /* 預留底部按鈕空間 */
+        }
+        
+        @media (min-width: 600px) {
+            .seat-grid { grid-template-columns: repeat(10, 1fr); } /* 電腦版一排10個 */
+        }
+
+        .seat-box {
+            aspect-ratio: 1;
+            background: white;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            position: relative;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: 0.2s;
+            font-size: 1.5rem;
+            transition: background 0.2s;
         }
         
-        /* 選中狀態 */
-        .animal-btn.selected {
-            background-color: #ddd;
-            border-color: #999;
-            transform: scale(0.9);
-            opacity: 0.6;
-        }
-        
-        .animal-btn:active { transform: scale(0.95); }
-
-        /* 插槽區域 (改為兩排 Grid) */
-        .slots-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            width: 100%;
-            margin-top: 10px;
-            background: rgba(0,0,0,0.05);
-            padding: 10px;
-            border-radius: 10px;
-        }
-        
-        .slot {
-            height: 60px;
-            background: rgba(255,255,255,0.8);
-            border: 2px dashed #999;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-            position: relative;
-        }
-        .slot.filled {
+        .seat-box.filled {
             border-style: solid;
-            border-color: #ff4757;
+            border-color: var(--accent-color);
             background: #fff0f1;
         }
-        .slot span { font-size: 10px; position: absolute; bottom: 2px; color: #888; width: 100%; text-align: center; }
+
+        .seat-number {
+            position: absolute;
+            top: 2px;
+            left: 5px;
+            font-size: 0.7rem;
+            color: #999;
+            font-weight: bold;
+        }
+
+        /* 底部浮動按鈕 */
+        .bottom-actions {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            padding: 15px;
+            background: rgba(255,255,255,0.9);
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .action-btn {
+            padding: 12px 40px;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            color: white;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+        .btn-start { background: var(--accent-color); box-shadow: 0 4px 0 #d63031; }
+        .btn-clear { background: #74b9ff; box-shadow: 0 4px 0 #0984e3; font-size: 1rem; padding: 12px 20px;}
+        .btn-start:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
 
         /* --- 2. 比賽畫面 --- */
         #race-screen {
-            display: block;
-            overflow-y: scroll; /* 允許垂直滾動 */
-            -webkit-overflow-scrolling: touch;
+            background: var(--grass-color);
+            overflow-y: auto; /* 允許垂直滾動 */
+            display: block; /* 覆蓋 flex */
         }
 
         .race-header {
             position: fixed;
             top: 0; left: 0; right: 0;
-            height: 50px;
-            background: rgba(255,255,255,0.9);
-            z-index: 20;
+            height: 60px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            z-index: 50;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
 
         .track-container {
-            margin-top: 60px; /* 避開 header */
-            margin-bottom: 20px;
-            width: 100%;
+            margin-top: 70px; /* Header 高度 */
+            padding-bottom: 50px;
             position: relative;
-            padding-right: 40px; 
-            box-sizing: border-box;
+            min-height: 100vh;
         }
 
+        /* 終點線樣式優化 */
         .finish-line {
             position: absolute;
-            right: 40px;
+            right: 10%; /* 距離右邊 10% 的位置 */
             top: 0;
             bottom: 0;
-            width: 8px;
-            background-image: repeating-linear-gradient(0deg, #333, #333 10px, #fff 10px, #fff 20px);
+            width: 15px;
+            background-image: repeating-linear-gradient(
+                45deg,
+                #000,
+                #000 10px,
+                #fff 10px,
+                #fff 20px
+            );
             z-index: 1;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.2);
         }
 
         .lane {
-            height: 50px; /* 稍微變窄以容納更多人 */
-            border-bottom: 1px solid rgba(255,255,255,0.5);
+            height: 50px;
+            background: rgba(255,255,255,0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.4);
             position: relative;
+            display: flex;
+            align-items: center;
             width: 100%;
         }
         
-        .lane:nth-child(odd) { background-color: rgba(0,0,0,0.02); }
+        .lane-number {
+            position: absolute;
+            left: 5px;
+            font-size: 12px;
+            color: rgba(0,0,0,0.5);
+            font-weight: bold;
+            z-index: 0;
+        }
 
         .racer {
             font-size: 35px;
             position: absolute;
-            left: 0;
-            top: 5px;
-            transition: left 0.1s linear; 
-            z-index: 2;
-            will-change: left; /* 優化效能 */
-        }
-        
-        .racer-name {
-            position: absolute;
-            top: -10px;
-            left: 5px;
-            font-size: 10px;
-            background: rgba(255,255,255,0.8);
-            padding: 1px 4px;
-            border-radius: 4px;
-            white-space: nowrap;
-            pointer-events: none;
+            left: 10px; /* 起點 */
+            transition: left 0.1s linear; /* 平滑移動 */
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            will-change: left;
         }
 
-        /* --- 3. 結算畫面 --- */
-        #result-modal { background: rgba(0,0,0,0.85); color: white; }
-        .podium { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 20px; }
-        .podium-place {
-            width: 60px; display: flex; flex-direction: column; align-items: center;
-            border-radius: 8px 8px 0 0; color: #333; font-weight: bold;
+        .racer-tag {
+            font-size: 10px;
+            background: rgba(255,255,255,0.8);
+            padding: 0 4px;
+            border-radius: 4px;
+            margin-top: -5px;
+            white-space: nowrap;
         }
-        .podium-place.first { height: 120px; background: #FFD700; order: 2; }
-        .podium-place.second { height: 90px; background: #C0C0C0; order: 1; }
-        .podium-place.third { height: 70px; background: #CD7F32; order: 3; }
-        .winner-avatar { font-size: 40px; margin-top: -25px; margin-bottom: 5px; }
+
+        /* --- 3. 結算彈窗 --- */
+        #result-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        #result-modal.show { opacity: 1; pointer-events: auto; }
+
+        .winner-display {
+            font-size: 80px;
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .rank-list {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            max-height: 40vh;
+            overflow-y: auto;
+            width: 80%;
+            text-align: center;
+        }
+        
+        .rank-item {
+            font-size: 1.2rem;
+            margin: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 5px;
+        }
 
     </style>
 </head>
 <body>
 
-    <div id="selection-screen" class="screen">
-        <div class="selection-container">
-            <h1>選擇 1~8 位選手</h1>
-            <p style="font-size:12px; color:#666; margin-top:-5px;">(再點一次可取消)</p>
+    <div id="setup-screen" class="screen">
+        <div class="header-panel">
+            <h2>步驟 1: 選擇動物 (目前: <span id="current-tool-display">🐶</span>)</h2>
+            <div class="animal-toolbar" id="animalToolbar">
+                </div>
             
-            <div class="animal-grid" id="animalGrid">
-                </div>
+            <h2 style="margin-top:15px;">步驟 2: 點擊號碼分配座位</h2>
+        </div>
 
-            <div class="slots-grid" id="slotsArea">
-                </div>
+        <div class="seat-grid" id="seatGrid">
+            </div>
 
-            <button id="startBtn" disabled onclick="startRace()">START RACE!</button>
+        <div class="bottom-actions">
+            <button class="action-btn btn-clear" onclick="clearAllSeats()">清空</button>
+            <button class="action-btn btn-start" id="startBtn" disabled onclick="initRace()">開始比賽</button>
         </div>
     </div>
 
     <div id="race-screen" class="screen hidden">
         <div class="race-header">
-            <h2 id="race-status" style="margin:0;">Ready...</h2>
+            <h1 id="status-text" style="margin:0; font-size:24px;">Ready...</h1>
         </div>
-        
-        <div class="track-container" id="trackArea">
+        <div class="track-container" id="trackContainer">
             <div class="finish-line"></div>
             </div>
     </div>
 
-    <div id="result-modal" class="screen hidden">
-        <h1>WINNER!</h1>
-        <div class="podium">
-            <div class="podium-place second">
-                <div class="winner-avatar" id="win-2-avatar"></div>
-                <div>2nd</div>
+    <div id="result-modal">
+        <div style="font-size: 24px; color: #f1c40f;">WINNER</div>
+        <div class="winner-display" id="winner-icon">🏆</div>
+        <div style="font-size: 20px; margin-bottom: 10px;" id="winner-name">No. X</div>
+        
+        <div class="rank-list" id="rankList">
             </div>
-            <div class="podium-place first">
-                <div class="winner-avatar" id="win-1-avatar"></div>
-                <div>1st</div>
-            </div>
-            <div class="podium-place third">
-                <div class="winner-avatar" id="win-3-avatar"></div>
-                <div>3rd</div>
-            </div>
-        </div>
-        <div id="other-ranks" style="font-size: 14px; margin-bottom: 20px; color: #ccc;">
-            </div>
-        <button onclick="resetGame()">RETRY</button>
+
+        <button class="action-btn btn-start" onclick="resetGame()">再玩一次</button>
     </div>
 
     <script>
-        // --- 資料設定 ---
-        // 定義角色，className 用於特殊樣式 (如黑色貴賓)
+        // --- 設定 ---
         const animals = [
-            { icon: '🐩', name: 'Black Poodle', className: 'black-poodle-filter' }, // 新增的角色
             { icon: '🐶', name: 'Doge' },
             { icon: '🐱', name: 'Cat' },
             { icon: '🐭', name: 'Mouse' },
@@ -284,254 +343,242 @@
             { icon: '🦁', name: 'Lion' },
             { icon: '🐷', name: 'Pig' },
             { icon: '🐸', name: 'Frog' },
-            { icon: '🐵', name: 'Monkey' }
+            { icon: '🐵', name: 'Monkey' },
+            { icon: '🐔', name: 'Chicken' }, // 新增
+            { icon: '🦆', name: 'Duck' },    // 新增
+            { icon: '🐴', name: 'Horse' },   // 新增
+            { icon: '🦄', name: 'Unicorn' }, // 新增
+            { icon: '🦖', name: 'Dino' }     // 新增
         ];
 
-        const MAX_SLOTS = 8;
-        // 陣列長度改為 8，null 代表該位置是空的
-        let selectedRacers = Array(MAX_SLOTS).fill(null);
+        const TOTAL_SEATS = 30;
+        let seatAssignments = Array(TOTAL_SEATS).fill(null); // 儲存每個座位的動物索引
+        let currentAnimalIndex = 0; // 當前選中的動物工具
         
-        let racersData = [];
+        // 賽跑邏輯變數
+        let racers = [];
         let raceInterval = null;
-        let finishedRacers = [];
+        let finishedCount = 0;
+        let rankHistory = [];
 
-        // --- 初始化 ---
-        const animalGrid = document.getElementById('animalGrid');
-        const slotsArea = document.getElementById('slotsArea');
+        // --- 初始化 UI ---
+        const toolbar = document.getElementById('animalToolbar');
+        const grid = document.getElementById('seatGrid');
+        const currentToolDisplay = document.getElementById('current-tool-display');
 
-        // 1. 建立動物選單按鈕
-        animals.forEach((animal, index) => {
+        // 1. 建立動物工具列
+        animals.forEach((ani, idx) => {
             const btn = document.createElement('div');
-            btn.className = 'animal-btn';
-            btn.id = `btn-animal-${index}`;
-            
-            // 如果有特殊樣式 (如黑色貴賓)，加入 span 包裹
-            if (animal.className) {
-                btn.innerHTML = `<span class="${animal.className}">${animal.icon}</span>`;
-            } else {
-                btn.textContent = animal.icon;
-            }
-            
-            btn.onclick = () => toggleSelection(index);
-            animalGrid.appendChild(btn);
+            btn.className = `tool-btn ${idx === 0 ? 'active' : ''}`;
+            btn.textContent = ani.icon;
+            btn.onclick = () => selectTool(idx, btn);
+            toolbar.appendChild(btn);
         });
 
-        // 2. 建立下方插槽
-        for (let i = 0; i < MAX_SLOTS; i++) {
-            const slot = document.createElement('div');
-            slot.className = 'slot';
-            slot.id = `slot-${i}`;
-            slot.innerHTML = `<span>Lane ${i+1}</span>`;
-            slotsArea.appendChild(slot);
+        function selectTool(idx, btnElement) {
+            currentAnimalIndex = idx;
+            // 更新 UI 樣式
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+            currentToolDisplay.textContent = animals[idx].icon;
         }
 
-        // --- 核心選角邏輯 (Toggle) ---
-        function toggleSelection(animalIndex) {
-            const animal = animals[animalIndex];
-            
-            // 檢查這隻動物是否已經在名單中 (用 name 判斷，因為 object 每次建立記憶體位置不同)
-            const existingSlotIndex = selectedRacers.findIndex(r => r && r.name === animal.name);
+        // 2. 建立座位網格
+        for (let i = 0; i < TOTAL_SEATS; i++) {
+            const box = document.createElement('div');
+            box.className = 'seat-box';
+            box.id = `seat-${i}`;
+            box.innerHTML = `<span class="seat-number">${i + 1}</span><span class="icon"></span>`;
+            box.onclick = () => toggleSeat(i);
+            grid.appendChild(box);
+        }
 
-            if (existingSlotIndex !== -1) {
-                // 情境 A: 已經選了 -> 取消選擇 (移除)
-                selectedRacers[existingSlotIndex] = null;
+        function toggleSeat(index) {
+            const box = document.getElementById(`seat-${index}`);
+            const iconSpan = box.querySelector('.icon');
+
+            // 邏輯：如果該格子已經是當前動物，則清除；否則設為當前動物
+            if (seatAssignments[index] === currentAnimalIndex) {
+                seatAssignments[index] = null;
+                iconSpan.textContent = '';
+                box.classList.remove('filled');
             } else {
-                // 情境 B: 還沒選 -> 找第一個空位加入
-                const emptySlotIndex = selectedRacers.findIndex(r => r === null);
-                if (emptySlotIndex !== -1) {
-                    selectedRacers[emptySlotIndex] = animal;
-                } else {
-                    // 滿了，不做事 (或者可以提示已滿)
-                    return; 
-                }
+                seatAssignments[index] = currentAnimalIndex;
+                iconSpan.textContent = animals[currentAnimalIndex].icon;
+                box.classList.add('filled');
             }
-
-            updateSelectionUI();
+            checkStartButton();
         }
 
-        function updateSelectionUI() {
-            // 1. 更新插槽顯示
-            selectedRacers.forEach((racer, i) => {
-                const slotEl = document.getElementById(`slot-${i}`);
-                if (racer) {
-                    let content = racer.className 
-                        ? `<span class="${racer.className}">${racer.icon}</span>` 
-                        : racer.icon;
-                    slotEl.innerHTML = `${content}<span>Lane ${i+1}</span>`;
-                    slotEl.classList.add('filled');
-                } else {
-                    slotEl.innerHTML = `<span>Lane ${i+1}</span>`;
-                    slotEl.classList.remove('filled');
-                }
+        function clearAllSeats() {
+            seatAssignments.fill(null);
+            document.querySelectorAll('.seat-box').forEach(box => {
+                box.querySelector('.icon').textContent = '';
+                box.classList.remove('filled');
             });
-
-            // 2. 更新按鈕狀態 (Selected 樣式)
-            animals.forEach((animal, index) => {
-                const btn = document.getElementById(`btn-animal-${index}`);
-                const isSelected = selectedRacers.some(r => r && r.name === animal.name);
-                if (isSelected) {
-                    btn.classList.add('selected');
-                } else {
-                    btn.classList.remove('selected');
-                }
-            });
-
-            // 3. 檢查開始按鈕 (至少要有 1 人才能開始)
-            const count = selectedRacers.filter(r => r !== null).length;
-            const startBtn = document.getElementById('startBtn');
-            if (count > 0) {
-                startBtn.disabled = false;
-                startBtn.textContent = `START (${count})`;
-                startBtn.style.transform = "scale(1.05)";
-            } else {
-                startBtn.disabled = true;
-                startBtn.textContent = "PICK RACERS";
-                startBtn.style.transform = "scale(1)";
-            }
+            checkStartButton();
         }
 
-        // --- 開始比賽 ---
-        function startRace() {
-            // 過濾掉 null 的插槽，只留下真正的參賽者，重新排列
-            const activeRacers = selectedRacers.filter(r => r !== null);
-            
-            document.getElementById('selection-screen').classList.add('hidden');
+        function checkStartButton() {
+            const hasPlayer = seatAssignments.some(x => x !== null);
+            document.getElementById('startBtn').disabled = !hasPlayer;
+        }
+
+        // --- 賽跑系統 ---
+
+        function initRace() {
+            // 切換畫面
+            document.getElementById('setup-screen').classList.add('hidden');
             document.getElementById('race-screen').classList.remove('hidden');
-            
-            const trackArea = document.getElementById('trackArea');
-            const finishLine = trackArea.querySelector('.finish-line');
-            trackArea.innerHTML = '';
-            trackArea.appendChild(finishLine);
 
-            racersData = [];
-            finishedRacers = [];
-            
-            // 根據實際參賽者建立跑道
-            activeRacers.forEach((animal, index) => {
-                const lane = document.createElement('div');
-                lane.className = 'lane';
-                
-                const racerDiv = document.createElement('div');
-                racerDiv.className = 'racer';
-                
-                // 處理特殊樣式
-                let iconHtml = animal.className 
-                    ? `<span class="${animal.className}">${animal.icon}</span>` 
-                    : animal.icon;
-                
-                racerDiv.innerHTML = `${iconHtml}<div class="racer-name">${animal.name}</div>`;
-                racerDiv.style.left = '0px';
-                
-                lane.appendChild(racerDiv);
-                trackArea.appendChild(lane);
+            const trackContainer = document.getElementById('trackContainer');
+            // 保留終點線，清除舊跑道
+            const finishLine = trackContainer.querySelector('.finish-line');
+            trackContainer.innerHTML = '';
+            trackContainer.appendChild(finishLine);
 
-                racersData.push({
-                    id: index,
-                    element: racerDiv,
-                    position: 0,
-                    speed: 0,
-                    info: animal,
-                    finished: false
-                });
+            racers = [];
+            finishedCount = 0;
+            rankHistory = [];
+
+            // 只為有分配動物的座位建立跑道
+            seatAssignments.forEach((animalIdx, seatIdx) => {
+                if (animalIdx !== null) {
+                    const animal = animals[animalIdx];
+                    
+                    // 建立 DOM
+                    const lane = document.createElement('div');
+                    lane.className = 'lane';
+                    
+                    const racerDiv = document.createElement('div');
+                    racerDiv.className = 'racer';
+                    racerDiv.innerHTML = `${animal.icon}<div class="racer-tag">No.${seatIdx + 1}</div>`;
+                    
+                    lane.appendChild(laneNumber = document.createElement('span'));
+                    laneNumber.className = 'lane-number';
+                    laneNumber.textContent = seatIdx + 1; // 顯示跑道編號
+                    lane.appendChild(laneNumber);
+
+                    lane.appendChild(racerDiv);
+                    trackContainer.appendChild(lane);
+
+                    racers.push({
+                        id: seatIdx + 1,
+                        element: racerDiv,
+                        icon: animal.icon,
+                        position: 0, // 0 to 100+
+                        speed: 0,
+                        finished: false
+                    });
+                }
             });
 
-            // 倒數
-            let count = 3;
-            const statusText = document.getElementById('race-status');
-            statusText.textContent = count;
-            
-            const countInterval = setInterval(() => {
-                count--;
-                if(count > 0) {
-                    statusText.textContent = count;
-                } else {
-                    statusText.textContent = "GO!!!";
-                    clearInterval(countInterval);
-                    startEngine(activeRacers.length);
-                }
-            }, 600);
+            startCountdown();
         }
 
-        // --- 賽跑引擎 ---
-        function startEngine(totalRacers) {
+        function startCountdown() {
+            let count = 3;
+            const status = document.getElementById('status-text');
+            status.textContent = count;
+            
+            const timer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    status.textContent = count;
+                } else {
+                    status.textContent = "GO!!!";
+                    clearInterval(timer);
+                    startEngine();
+                }
+            }, 800);
+        }
+
+        function startEngine() {
+            // 終點線位置設定為 90% (right: 10%)
+            // 動物需要跑超過這個數值才算贏
+            const FINISH_POINT = 90; 
+            
+            // 重要修改：讓動物能跑出螢幕外一點點，確保視覺上穿過線
+            // CSS 中 finish-line 是 right: 10%。
+            // 我們讓 position 跑到 92~95 左右才停止。
+
             raceInterval = setInterval(() => {
-                if(finishedRacers.length === totalRacers) {
+                const activeRacers = racers.filter(r => !r.finished);
+                
+                if (activeRacers.length === 0) {
                     endRace();
                     return;
                 }
 
-                racersData.forEach(racer => {
+                racers.forEach(racer => {
                     if (racer.finished) return;
 
-                    // 隨機變速邏輯
-                    if (Math.random() < 0.08) { 
-                        racer.speed = Math.random() * 0.7 + 0.15; // 基礎速度
-                        if(Math.random() < 0.1) racer.speed += 0.8; // 暴衝
-                        if(Math.random() < 0.1) racer.speed *= 0.2; // 停滯
+                    // 隨機變速 (模擬真實賽跑的不穩定性)
+                    if (Math.random() < 0.1) {
+                        racer.speed = Math.random() * 0.5 + 0.2; // 基礎速度
+                        if (Math.random() < 0.05) racer.speed += 1.0; // 暴衝
+                        if (Math.random() < 0.05) racer.speed *= 0.1; // 停頓
                     }
 
                     racer.position += racer.speed;
-                    
-                    // 螢幕寬度百分比，預留右邊空間
-                    const maxPos = 90; 
-                    racer.element.style.left = Math.min(racer.position, maxPos) + '%';
 
-                    if (racer.position >= maxPos && !racer.finished) {
+                    // 繪製位置 (left %)
+                    // 為了視覺修正，我們讓它最多跑到 94%
+                    racer.element.style.left = racer.position + '%';
+
+                    // 衝線判定
+                    if (racer.position >= FINISH_POINT) {
                         racer.finished = true;
-                        finishedRacers.push(racer);
+                        finishedCount++;
+                        rankHistory.push(racer);
+                        
+                        // 第一名特效
+                        if (finishedCount === 1) {
+                            document.getElementById('status-text').textContent = `Winner: No.${racer.id} ${racer.icon}`;
+                        }
                     }
                 });
 
-            }, 20);
+            }, 20); // 50 FPS
         }
 
         function endRace() {
             clearInterval(raceInterval);
-            document.getElementById('race-status').textContent = "FINISHED!";
-            setTimeout(showResults, 1200);
+            document.getElementById('status-text').textContent = "RACE FINISHED!";
+            setTimeout(showResults, 1500);
         }
 
         function showResults() {
-            document.getElementById('result-modal').classList.remove('hidden');
+            const modal = document.getElementById('result-modal');
+            const winner = rankHistory[0];
             
-            // 重置獎台
-            ['win-1', 'win-2', 'win-3'].forEach(id => {
-                document.getElementById(`${id}-avatar`).innerHTML = '';
+            document.getElementById('winner-icon').textContent = winner.icon;
+            document.getElementById('winner-name').textContent = `No. ${winner.id}`;
+            
+            // 生成排名表
+            const list = document.getElementById('rankList');
+            list.innerHTML = '';
+            rankHistory.forEach((r, i) => {
+                const item = document.createElement('div');
+                item.className = 'rank-item';
+                // 前三名加獎牌
+                let prefix = `#${i + 1}`;
+                if(i===0) prefix = '🥇';
+                if(i===1) prefix = '🥈';
+                if(i===2) prefix = '🥉';
+                
+                item.innerHTML = `${prefix} <span style="margin:0 10px;">${r.icon}</span> (No.${r.id})`;
+                list.appendChild(item);
             });
 
-            // 填入前三名 (需處理參賽者少於3人的情況)
-            const setWinnerHtml = (elementId, racer) => {
-                if(!racer) return;
-                const el = document.getElementById(elementId);
-                el.innerHTML = racer.info.className 
-                    ? `<span class="${racer.info.className}">${racer.info.icon}</span>` 
-                    : racer.info.icon;
-            };
-
-            setWinnerHtml('win-1-avatar', finishedRacers[0]);
-            setWinnerHtml('win-2-avatar', finishedRacers[1]);
-            setWinnerHtml('win-3-avatar', finishedRacers[2]);
-
-            // 顯示 4~8 名
-            const otherRanksDiv = document.getElementById('other-ranks');
-            otherRanksDiv.innerHTML = '';
-            if (finishedRacers.length > 3) {
-                let text = "Rank 4+: ";
-                for (let i = 3; i < finishedRacers.length; i++) {
-                    text += finishedRacers[i].info.icon + " ";
-                }
-                otherRanksDiv.textContent = text;
-            }
+            modal.classList.add('show');
         }
 
         function resetGame() {
-            selectedRacers = Array(MAX_SLOTS).fill(null);
-            updateSelectionUI();
-            
-            document.getElementById('result-modal').classList.add('hidden');
+            document.getElementById('result-modal').classList.remove('show');
             document.getElementById('race-screen').classList.add('hidden');
-            document.getElementById('selection-screen').classList.remove('hidden');
-            document.getElementById('race-status').textContent = "Ready...";
+            document.getElementById('setup-screen').classList.remove('hidden');
+            document.getElementById('status-text').textContent = "Ready...";
         }
 
     </script>
