@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>30人亂鬥 - 動物賽跑</title>
+    <title>30人亂鬥 - 動物賽跑 (含隨機功能)</title>
     <style>
         :root {
             --grass-color: #7CFC00;
@@ -46,75 +46,111 @@
 
         /* --- 1. 選角設定畫面 --- */
         #setup-screen {
-            padding: 10px;
+            padding: 20px;
             box-sizing: border-box;
             overflow-y: auto;
-        }
-
-        .header-panel {
-            background: white;
-            padding: 15px;
-            border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            margin-bottom: 15px;
-            position: sticky;
-            top: 0;
-            z-index: 20;
-        }
-
-        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #333; }
-
-        /* 動物選擇工具列 */
-        .animal-toolbar {
             display: flex;
+            flex-direction: column;
+            align-items: center; 
+        }
+
+        .panel-container {
+            width: 100%;
+            max-width: 900px; 
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h2 { margin: 0 0 15px 0; font-size: 1.3rem; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px;}
+
+        /* --- 步驟 1: 動物選擇工具列 (6欄 x 5列) --- */
+        .animal-grid-selector {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr); 
             gap: 10px;
-            overflow-x: auto;
-            padding-bottom: 10px;
             margin-bottom: 10px;
         }
+
         .tool-btn {
-            font-size: 28px;
-            min-width: 50px;
-            height: 50px;
-            background: #eee;
-            border-radius: 50%;
+            aspect-ratio: 1; 
+            font-size: 2rem;
+            background: #f8f9fa;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px solid transparent;
+            border: 2px solid #e9ecef;
             cursor: pointer;
+            transition: all 0.2s;
         }
+        .tool-btn:hover { background: #e2e6ea; }
+        
         .tool-btn.active {
-            background: #ffeaa7;
-            border-color: #fdcb6e;
-            transform: scale(1.1);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            background: #fff3cd;
+            border-color: #ffc107;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            z-index: 2;
         }
 
-        /* 30個座位網格 - 修改為 6欄 */
+        /* --- 隨機控制區塊 (新功能) --- */
+        .random-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #e3f2fd;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #90caf9;
+        }
+        
+        .random-input {
+            width: 60px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .btn-random {
+            background: #2196F3;
+            color: white;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            border-radius: 5px;
+            box-shadow: 0 2px 0 #1976D2;
+        }
+        .btn-random:hover { background: #1e88e5; }
+
+        /* --- 步驟 2: 座位網格 (10欄 x 3列) --- */
         .seat-grid {
             display: grid;
-            grid-template-columns: repeat(6, 1fr); /* 固定6欄 */
-            gap: 6px; /* 間距稍微縮小以容納更多 */
+            grid-template-columns: repeat(10, 1fr); 
+            gap: 8px;
             padding-bottom: 80px;
-            max-width: 600px; /* 限制最大寬度讓電腦版也保持6欄 */
-            margin: 0 auto; /* 置中 */
         }
         
         .seat-box {
             aspect-ratio: 1;
-            background: white;
+            background: #fff;
             border: 2px dashed #ccc;
-            border-radius: 10px;
+            border-radius: 8px;
             position: relative;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
-            overflow: hidden; /* 防止放大溢出 */
+            overflow: hidden;
         }
         
+        .seat-box:hover { border-color: #aaa; }
+
         .seat-box.filled {
             border-style: solid;
             border-color: var(--accent-color);
@@ -125,31 +161,27 @@
         .seat-number {
             position: absolute;
             top: 2px;
-            left: 5px;
-            font-size: 0.7rem;
+            left: 4px;
+            font-size: 0.8rem;
             color: #999;
             font-weight: bold;
             z-index: 1;
         }
         
-        /* 動物頭像放大效果 */
         .seat-box .icon {
-            font-size: 0; /* 預設隱藏 */
+            font-size: 0; 
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 2;
         }
         
         .seat-box.filled .icon {
-            font-size: 2.8rem; /* 放大顯示 */
+            font-size: 2.5rem; 
             display: block;
             line-height: 1;
             transform: scale(1);
         }
         
-        /* 選中時的動畫效果 */
-        .seat-box.filled:active .icon {
-             transform: scale(0.8);
-        }
+        .seat-box.filled:active .icon { transform: scale(0.8); }
 
         /* 底部浮動按鈕 */
         .bottom-actions {
@@ -305,19 +337,28 @@
 <body>
 
     <div id="setup-screen" class="screen">
-        <div class="header-panel">
+        <div class="panel-container">
             <h2>步驟 1: 選擇動物 (目前: <span id="current-tool-display">🐶</span>)</h2>
-            <div class="animal-toolbar" id="animalToolbar">
-                </div>
-            
-            <h2 style="margin-top:15px;">步驟 2: 點擊號碼分配座位</h2>
+            <div class="animal-grid-selector" id="animalToolbar"></div>
         </div>
-
-        <div class="seat-grid" id="seatGrid">
+            
+        <div class="panel-container">
+            <h2 style="display:flex; justify-content:space-between; align-items:center;">
+                步驟 2: 分配座位
+            </h2>
+            
+            <div class="random-controls">
+                <span>自動分配 1 號 到</span>
+                <input type="number" id="randomLimit" class="random-input" min="1" max="30" value="30">
+                <span>號</span>
+                <button class="btn-random" onclick="autoRandomFill()">🎲 隨機生成</button>
             </div>
 
+            <div class="seat-grid" id="seatGrid"></div>
+        </div>
+
         <div class="bottom-actions">
-            <button class="action-btn btn-clear" onclick="clearAllSeats()">清空</button>
+            <button class="action-btn btn-clear" onclick="clearAllSeats()">全部清空</button>
             <button class="action-btn btn-start" id="startBtn" disabled onclick="initRace()">開始比賽</button>
         </div>
     </div>
@@ -328,7 +369,7 @@
         </div>
         <div class="track-container" id="trackContainer">
             <div class="finish-line"></div>
-            </div>
+        </div>
     </div>
 
     <div id="result-modal">
@@ -336,8 +377,7 @@
         <div class="winner-display" id="winner-icon">🏆</div>
         <div style="font-size: 20px; margin-bottom: 10px;" id="winner-name">No. X</div>
         
-        <div class="rank-list" id="rankList">
-            </div>
+        <div class="rank-list" id="rankList"></div>
 
         <button class="action-btn btn-start" onclick="resetGame()">再玩一次</button>
     </div>
@@ -345,43 +385,17 @@
     <script>
         // --- 設定：共30隻動物 ---
         const animals = [
-            { icon: '🐶', name: 'Doge' },
-            { icon: '🐱', name: 'Cat' },
-            { icon: '🐭', name: 'Mouse' },
-            { icon: '🐹', name: 'Hamster' },
-            { icon: '🐰', name: 'Rabbit' },
-            { icon: '🦊', name: 'Fox' },
-            { icon: '🐻', name: 'Bear' },
-            { icon: '🐼', name: 'Panda' },
-            { icon: '🐨', name: 'Koala' },
-            { icon: '🐯', name: 'Tiger' },
-            { icon: '🦁', name: 'Lion' },
-            { icon: '🐮', name: 'Cow' },
-            { icon: '🐷', name: 'Pig' },
-            { icon: '🐸', name: 'Frog' },
-            { icon: '🐵', name: 'Monkey' },
-            { icon: '🐔', name: 'Chicken' }, 
-            { icon: '🦆', name: 'Duck' },    
-            { icon: '🦅', name: 'Eagle' },
-            { icon: '🦉', name: 'Owl' },
-            { icon: '🦇', name: 'Bat' },
-            { icon: '🐺', name: 'Wolf' },
-            { icon: '🐗', name: 'Boar' },
-            { icon: '🐴', name: 'Horse' },   
-            { icon: '🦄', name: 'Unicorn' }, 
-            { icon: '🦓', name: 'Zebra' },
-            { icon: '🦒', name: 'Giraffe' },
-            { icon: '🐘', name: 'Elephant' },
-            { icon: '🦏', name: 'Rhino' },
-            { icon: '🐊', name: 'Croc' },
-            { icon: '🦖', name: 'Dino' }     
+            { icon: '🐶', name: 'Doge' }, { icon: '🐱', name: 'Cat' }, { icon: '🐭', name: 'Mouse' }, { icon: '🐹', name: 'Hamster' }, { icon: '🐰', name: 'Rabbit' }, { icon: '🦊', name: 'Fox' },
+            { icon: '🐻', name: 'Bear' }, { icon: '🐼', name: 'Panda' }, { icon: '🐨', name: 'Koala' }, { icon: '🐯', name: 'Tiger' }, { icon: '🦁', name: 'Lion' }, { icon: '🐮', name: 'Cow' },
+            { icon: '🐷', name: 'Pig' }, { icon: '🐸', name: 'Frog' }, { icon: '🐵', name: 'Monkey' }, { icon: '🐔', name: 'Chicken' }, { icon: '🦆', name: 'Duck' }, { icon: '🦅', name: 'Eagle' },
+            { icon: '🦉', name: 'Owl' }, { icon: '🦇', name: 'Bat' }, { icon: '🐺', name: 'Wolf' }, { icon: '🐗', name: 'Boar' }, { icon: '🐴', name: 'Horse' }, { icon: '🦄', name: 'Unicorn' },
+            { icon: '🦓', name: 'Zebra' }, { icon: '🦒', name: 'Giraffe' }, { icon: '🐘', name: 'Elephant' }, { icon: '🦏', name: 'Rhino' }, { icon: '🐊', name: 'Croc' }, { icon: '🦖', name: 'Dino' }     
         ];
 
         const TOTAL_SEATS = 30;
         let seatAssignments = Array(TOTAL_SEATS).fill(null); 
         let currentAnimalIndex = 0; 
         
-        // 賽跑邏輯變數
         let racers = [];
         let raceInterval = null;
         let finishedCount = 0;
@@ -392,7 +406,7 @@
         const grid = document.getElementById('seatGrid');
         const currentToolDisplay = document.getElementById('current-tool-display');
 
-        // 1. 建立動物工具列
+        // 1. 建立動物選擇 (6x5)
         animals.forEach((ani, idx) => {
             const btn = document.createElement('div');
             btn.className = `tool-btn ${idx === 0 ? 'active' : ''}`;
@@ -408,7 +422,7 @@
             currentToolDisplay.textContent = animals[idx].icon;
         }
 
-        // 2. 建立座位網格 (會自動依照 CSS 排成 6x5)
+        // 2. 建立座位 (10x3)
         for (let i = 0; i < TOTAL_SEATS; i++) {
             const box = document.createElement('div');
             box.className = 'seat-box';
@@ -418,20 +432,59 @@
             grid.appendChild(box);
         }
 
+        // --- 核心互動功能 ---
+
         function toggleSeat(index) {
+            const box = document.getElementById(`seat-${index}`);
+            
+            // 如果該格子是手動點的，使用目前選中的動物 (currentAnimalIndex)
+            // 邏輯：如果該格子已經填了"當前選的動物"，則清除。否則填入"當前選的動物"。
+            if (seatAssignments[index] === currentAnimalIndex) {
+                updateSeatVisual(index, null);
+            } else {
+                updateSeatVisual(index, currentAnimalIndex);
+            }
+            checkStartButton();
+        }
+
+        // 新增：隨機自動分配功能
+        function autoRandomFill() {
+            const limitInput = document.getElementById('randomLimit');
+            let limit = parseInt(limitInput.value);
+            
+            // 驗證輸入
+            if (isNaN(limit) || limit < 1) limit = 1;
+            if (limit > TOTAL_SEATS) limit = TOTAL_SEATS;
+            limitInput.value = limit; // 修正 UI 顯示
+
+            // 開始隨機分配 0 到 limit-1
+            for (let i = 0; i < limit; i++) {
+                // 隨機選一隻動物 (0 ~ 29)
+                const randomAniIdx = Math.floor(Math.random() * animals.length);
+                updateSeatVisual(i, randomAniIdx);
+            }
+            
+            // 清除 limit 之後的座位 (可選，看需求，這裡設為保留或清除? 這裡我設為清除多餘的，比較直覺)
+            for (let i = limit; i < TOTAL_SEATS; i++) {
+                updateSeatVisual(i, null);
+            }
+
+            checkStartButton();
+        }
+
+        // 統一更新座位的視覺與資料
+        function updateSeatVisual(index, animalIdx) {
+            seatAssignments[index] = animalIdx;
             const box = document.getElementById(`seat-${index}`);
             const iconSpan = box.querySelector('.icon');
 
-            if (seatAssignments[index] === currentAnimalIndex) {
-                seatAssignments[index] = null;
+            if (animalIdx === null) {
                 iconSpan.textContent = '';
                 box.classList.remove('filled');
             } else {
-                seatAssignments[index] = currentAnimalIndex;
-                iconSpan.textContent = animals[currentAnimalIndex].icon;
+                iconSpan.textContent = animals[animalIdx].icon;
                 box.classList.add('filled');
             }
-            checkStartButton();
         }
 
         function clearAllSeats() {
