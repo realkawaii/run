@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>30人亂鬥 - 動物賽跑 (含隨機功能)</title>
+    <title>30人亂鬥 - 絕對隱形版</title>
     <style>
         :root {
             --grass-color: #7CFC00;
-            --track-bg: rgba(255, 255, 255, 0.9);
             --ui-bg: #f0f2f5;
             --accent-color: #ff4757;
+            --text-dark: #333;
         }
 
         body {
@@ -62,11 +62,12 @@
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            position: relative;
         }
 
-        h2 { margin: 0 0 15px 0; font-size: 1.3rem; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px;}
+        h2 { margin: 0 0 15px 0; font-size: 1.3rem; color: var(--text-dark); border-bottom: 2px solid #eee; padding-bottom: 10px;}
 
-        /* --- 步驟 1: 動物選擇工具列 (6欄 x 5列) --- */
+        /* --- 動物工具列 --- */
         .animal-grid-selector {
             display: grid;
             grid-template-columns: repeat(6, 1fr); 
@@ -96,7 +97,7 @@
             z-index: 2;
         }
 
-        /* --- 隨機控制區塊 (新功能) --- */
+        /* --- 隨機控制區 (含秘密開關) --- */
         .random-controls {
             display: flex;
             align-items: center;
@@ -115,6 +116,14 @@
             border-radius: 5px;
             font-size: 1rem;
             text-align: center;
+            transition: background-color 0.3s;
+        }
+
+        /* 這是秘密按鈕：文字標籤 "號" */
+        #secret-trigger-label {
+            cursor: pointer; /* 讓你知道它可以點，但學生不會注意 */
+            padding: 0 5px;
+            user-select: none;
         }
 
         .btn-random {
@@ -125,9 +134,8 @@
             border-radius: 5px;
             box-shadow: 0 2px 0 #1976D2;
         }
-        .btn-random:hover { background: #1e88e5; }
 
-        /* --- 步驟 2: 座位網格 (10欄 x 3列) --- */
+        /* --- 座位網格 --- */
         .seat-grid {
             display: grid;
             grid-template-columns: repeat(10, 1fr); 
@@ -149,8 +157,6 @@
             overflow: hidden;
         }
         
-        .seat-box:hover { border-color: #aaa; }
-
         .seat-box.filled {
             border-style: solid;
             border-color: var(--accent-color);
@@ -165,13 +171,14 @@
             font-size: 0.8rem;
             color: #999;
             font-weight: bold;
-            z-index: 1;
+            z-index: 2;
         }
         
+        /* 動物圖標 */
         .seat-box .icon {
             font-size: 0; 
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 2;
+            z-index: 3;
         }
         
         .seat-box.filled .icon {
@@ -180,9 +187,19 @@
             line-height: 1;
             transform: scale(1);
         }
-        
-        .seat-box.filled:active .icon { transform: scale(0.8); }
 
+        /* --- 背景裝飾 (小花小草) --- */
+        .bg-decoration {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 1.2rem;
+            opacity: 0.25; 
+            z-index: 1;
+            filter: grayscale(80%); 
+            transition: all 0.5s ease;
+        }
+        
         /* 底部浮動按鈕 */
         .bottom-actions {
             position: fixed;
@@ -208,7 +225,7 @@
         .btn-clear { background: #74b9ff; box-shadow: 0 4px 0 #0984e3; font-size: 1rem; padding: 12px 20px;}
         .btn-start:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
 
-        /* --- 2. 比賽畫面 --- */
+        /* --- 比賽畫面 --- */
         #race-screen {
             background: var(--grass-color);
             overflow-y: auto;
@@ -288,7 +305,7 @@
             white-space: nowrap;
         }
 
-        /* --- 3. 結算彈窗 --- */
+        /* --- 結算彈窗 --- */
         #result-modal {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -343,14 +360,13 @@
         </div>
             
         <div class="panel-container">
-            <h2 style="display:flex; justify-content:space-between; align-items:center;">
-                步驟 2: 分配座位
-            </h2>
+            <h2>步驟 2: 分配座位</h2>
             
             <div class="random-controls">
                 <span>自動分配 1 號 到</span>
                 <input type="number" id="randomLimit" class="random-input" min="1" max="30" value="30">
-                <span>號</span>
+                <span id="secret-trigger-label" onclick="setSecretWinnerFromInput()">號</span>
+                
                 <button class="btn-random" onclick="autoRandomFill()">🎲 隨機生成</button>
             </div>
 
@@ -383,7 +399,7 @@
     </div>
 
     <script>
-        // --- 設定：共30隻動物 ---
+        // --- 設定 ---
         const animals = [
             { icon: '🐶', name: 'Doge' }, { icon: '🐱', name: 'Cat' }, { icon: '🐭', name: 'Mouse' }, { icon: '🐹', name: 'Hamster' }, { icon: '🐰', name: 'Rabbit' }, { icon: '🦊', name: 'Fox' },
             { icon: '🐻', name: 'Bear' }, { icon: '🐼', name: 'Panda' }, { icon: '🐨', name: 'Koala' }, { icon: '🐯', name: 'Tiger' }, { icon: '🦁', name: 'Lion' }, { icon: '🐮', name: 'Cow' },
@@ -400,13 +416,17 @@
         let raceInterval = null;
         let finishedCount = 0;
         let rankHistory = [];
+        
+        // --- 隱形上帝模式變數 ---
+        let finalWinnerId = null; // 最終贏家座號
 
         // --- 初始化 UI ---
         const toolbar = document.getElementById('animalToolbar');
         const grid = document.getElementById('seatGrid');
         const currentToolDisplay = document.getElementById('current-tool-display');
+        const inputField = document.getElementById('randomLimit');
 
-        // 1. 建立動物選擇 (6x5)
+        // 1. 建立動物選擇
         animals.forEach((ani, idx) => {
             const btn = document.createElement('div');
             btn.className = `tool-btn ${idx === 0 ? 'active' : ''}`;
@@ -422,62 +442,63 @@
             currentToolDisplay.textContent = animals[idx].icon;
         }
 
-        // 2. 建立座位 (10x3)
+        // 2. 建立座位 (加入隨機小花小草)
+        const decos = ['🌸', '🌿', '☘️', '🌼', '🌱'];
+        
         for (let i = 0; i < TOTAL_SEATS; i++) {
             const box = document.createElement('div');
             box.className = 'seat-box';
             box.id = `seat-${i}`;
-            box.innerHTML = `<span class="seat-number">${i + 1}</span><span class="icon"></span>`;
+            
+            const randomDeco = decos[Math.floor(Math.random() * decos.length)];
+            const randomRot = Math.floor(Math.random() * 60) - 30; 
+            
+            box.innerHTML = `
+                <span class="seat-number">${i + 1}</span>
+                <span class="icon"></span>
+                <div class="bg-decoration" style="transform: rotate(${randomRot}deg);">${randomDeco}</div>
+            `;
             box.onclick = () => toggleSeat(i);
             grid.appendChild(box);
         }
 
-        // --- 核心互動功能 ---
-
-        function toggleSeat(index) {
-            const box = document.getElementById(`seat-${index}`);
+        // --- 核心：輸入框密碼控制 ---
+        function setSecretWinnerFromInput() {
+            const val = parseInt(inputField.value);
             
-            // 如果該格子是手動點的，使用目前選中的動物 (currentAnimalIndex)
-            // 邏輯：如果該格子已經填了"當前選的動物"，則清除。否則填入"當前選的動物"。
+            // 視覺回饋：閃一下綠色
+            inputField.style.backgroundColor = '#dff9fb';
+            setTimeout(() => {
+                inputField.style.backgroundColor = '#fff';
+            }, 300);
+
+            if (!isNaN(val) && val >= 1 && val <= TOTAL_SEATS) {
+                // 設定贏家
+                finalWinnerId = val;
+            } else {
+                // 取消贏家
+                finalWinnerId = null;
+            }
+            // 移除原本會導致視覺變化的 refreshWinnerMarks()
+            // 系統內部已紀錄 finalWinnerId，但不在介面上顯示任何東西
+        }
+
+        // --- 一般操作 ---
+        function toggleSeat(index) {
+            // 正常動物分配邏輯
             if (seatAssignments[index] === currentAnimalIndex) {
                 updateSeatVisual(index, null);
+                // 為了安全，如果格子被清空，暫時不取消內定（老師可能稍後補上），但比賽開始時會檢查
             } else {
                 updateSeatVisual(index, currentAnimalIndex);
             }
             checkStartButton();
         }
 
-        // 新增：隨機自動分配功能
-        function autoRandomFill() {
-            const limitInput = document.getElementById('randomLimit');
-            let limit = parseInt(limitInput.value);
-            
-            // 驗證輸入
-            if (isNaN(limit) || limit < 1) limit = 1;
-            if (limit > TOTAL_SEATS) limit = TOTAL_SEATS;
-            limitInput.value = limit; // 修正 UI 顯示
-
-            // 開始隨機分配 0 到 limit-1
-            for (let i = 0; i < limit; i++) {
-                // 隨機選一隻動物 (0 ~ 29)
-                const randomAniIdx = Math.floor(Math.random() * animals.length);
-                updateSeatVisual(i, randomAniIdx);
-            }
-            
-            // 清除 limit 之後的座位 (可選，看需求，這裡設為保留或清除? 這裡我設為清除多餘的，比較直覺)
-            for (let i = limit; i < TOTAL_SEATS; i++) {
-                updateSeatVisual(i, null);
-            }
-
-            checkStartButton();
-        }
-
-        // 統一更新座位的視覺與資料
         function updateSeatVisual(index, animalIdx) {
             seatAssignments[index] = animalIdx;
             const box = document.getElementById(`seat-${index}`);
             const iconSpan = box.querySelector('.icon');
-
             if (animalIdx === null) {
                 iconSpan.textContent = '';
                 box.classList.remove('filled');
@@ -487,12 +508,27 @@
             }
         }
 
+        function autoRandomFill() {
+            let limit = parseInt(inputField.value);
+            if (isNaN(limit) || limit < 1) limit = 1;
+            if (limit > TOTAL_SEATS) limit = TOTAL_SEATS;
+            inputField.value = limit;
+
+            for (let i = 0; i < limit; i++) {
+                const randomAniIdx = Math.floor(Math.random() * animals.length);
+                updateSeatVisual(i, randomAniIdx);
+            }
+            // 隨機分配不會清除 finalWinnerId (除非格子被設為 null)
+            checkStartButton();
+        }
+
         function clearAllSeats() {
             seatAssignments.fill(null);
             document.querySelectorAll('.seat-box').forEach(box => {
                 box.querySelector('.icon').textContent = '';
                 box.classList.remove('filled');
             });
+            finalWinnerId = null; // 全部清空時，重置贏家
             checkStartButton();
         }
 
@@ -504,6 +540,11 @@
         // --- 賽跑系統 ---
 
         function initRace() {
+            // 防呆：如果內定的格子沒人，取消內定
+            if (finalWinnerId !== null && seatAssignments[finalWinnerId - 1] === null) {
+                finalWinnerId = null; 
+            }
+
             document.getElementById('setup-screen').classList.add('hidden');
             document.getElementById('race-screen').classList.remove('hidden');
 
@@ -519,7 +560,6 @@
             seatAssignments.forEach((animalIdx, seatIdx) => {
                 if (animalIdx !== null) {
                     const animal = animals[animalIdx];
-                    
                     const lane = document.createElement('div');
                     lane.className = 'lane';
                     
@@ -535,13 +575,15 @@
                     lane.appendChild(racerDiv);
                     trackContainer.appendChild(lane);
 
+                    let isGod = (finalWinnerId === (seatIdx + 1));
+
                     racers.push({
                         id: seatIdx + 1,
                         element: racerDiv,
                         icon: animal.icon,
                         position: 0, 
-                        speed: 0,
-                        finished: false
+                        finished: false,
+                        isGod: isGod
                     });
                 }
             });
@@ -553,7 +595,6 @@
             let count = 3;
             const status = document.getElementById('status-text');
             status.textContent = count;
-            
             const timer = setInterval(() => {
                 count--;
                 if (count > 0) {
@@ -566,40 +607,113 @@
             }, 800);
         }
 
+        // --- 核心引擎 ---
         function startEngine() {
             const FINISH_POINT = 90; 
+            const DRAMA_POINT = 75; // 進入劇情模式的點
             
+            // 全局變數紀錄劇本狀態
+            let fakeLeaderId = null; 
+            let tragicLeaderId = null; 
+            let heroId = null; 
+
+            // 上帝模式：選個假領跑者
+            if (finalWinnerId !== null) {
+                const potentialFakes = racers.filter(r => r.id !== finalWinnerId);
+                if (potentialFakes.length > 0) {
+                    fakeLeaderId = potentialFakes[Math.floor(Math.random() * potentialFakes.length)].id;
+                }
+            }
+
             raceInterval = setInterval(() => {
                 const activeRacers = racers.filter(r => !r.finished);
-                
                 if (activeRacers.length === 0) {
                     endRace();
                     return;
                 }
 
-                racers.forEach(racer => {
+                // 找目前第一名
+                let maxPos = 0;
+                let currentLeader = null;
+                racers.forEach(r => { 
+                    if(r.position > maxPos) {
+                        maxPos = r.position;
+                        currentLeader = r;
+                    }
+                });
+                const raceProgress = maxPos / FINISH_POINT;
+
+                racers.forEach((racer) => {
                     if (racer.finished) return;
 
-                    if (Math.random() < 0.1) {
-                        racer.speed = Math.random() * 0.5 + 0.2; 
-                        if (Math.random() < 0.05) racer.speed += 1.0; 
-                        if (Math.random() < 0.05) racer.speed *= 0.1; 
+                    let move = 0;
+
+                    if (finalWinnerId !== null) {
+                        // === 上帝模式：絕對輾壓 ===
+                        if (racer.isGod) {
+                            if (maxPos < DRAMA_POINT) {
+                                // 前段：保持在隊伍中前段，但不要太快
+                                move = Math.random() * 0.4 + 0.3; 
+                                // 限制速度，避免過早超車
+                                if (fakeLeaderId && racer.position > maxPos - 2) move *= 0.8;
+                            } else {
+                                // 後段：超級渦輪，速度是別人的 2-3 倍
+                                move = 2.5; 
+                            }
+                        } else if (racer.id === fakeLeaderId) {
+                            // 假領跑者：前段快，後段直接煞車
+                            if (maxPos < DRAMA_POINT) {
+                                move = Math.random() * 0.4 + 0.5;
+                            } else {
+                                move = 0.1; // 沒油了
+                            }
+                        } else {
+                            // 其他路人
+                            move = Math.random() * 0.4 + 0.2;
+                            // 最後階段如果有人不小心太快，強制減速讓路
+                            if (maxPos >= DRAMA_POINT && racer.position > maxPos - 10) {
+                                move = 0.2;
+                            }
+                        }
+
+                    } else {
+                        // === 隨機模式 (大逆轉 + 拉大距離) ===
+                        
+                        if (maxPos < DRAMA_POINT) {
+                             let base = Math.random() * 0.7; // 波動大一點
+                             if (Math.random() < 0.1) base += 0.8;
+                             move = base + 0.2;
+                        } else {
+                            // 決定倒楣鬼與英雄
+                            if (!tragicLeaderId) {
+                                tragicLeaderId = currentLeader.id;
+                                const sorted = racers.filter(r => !r.finished).sort((a,b) => b.position - a.position);
+                                if (sorted.length > 1) heroId = sorted[1].id;
+                                else heroId = sorted[0].id;
+                            }
+
+                            if (racer.id === tragicLeaderId) {
+                                move = 0.1; // 第一名慘摔
+                            } else if (racer.id === heroId) {
+                                move = 2.2; // 英雄超級加速，拉開距離
+                            } else {
+                                move = Math.random() * 0.5;
+                            }
+                        }
                     }
 
-                    racer.position += racer.speed;
+                    racer.position += move;
                     racer.element.style.left = racer.position + '%';
 
                     if (racer.position >= FINISH_POINT) {
                         racer.finished = true;
                         finishedCount++;
                         rankHistory.push(racer);
-                        
                         if (finishedCount === 1) {
                             document.getElementById('status-text').textContent = `Winner: No.${racer.id} ${racer.icon}`;
                         }
                     }
                 });
-
             }, 20); 
         }
 
@@ -634,6 +748,8 @@
         }
 
         function resetGame() {
+            finalWinnerId = null;
+            
             document.getElementById('result-modal').classList.remove('show');
             document.getElementById('race-screen').classList.add('hidden');
             document.getElementById('setup-screen').classList.remove('hidden');
