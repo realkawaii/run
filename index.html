@@ -91,18 +91,16 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        /* 30個座位網格 */
+        /* 30個座位網格 - 修改為 6欄 */
         .seat-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr); /* 手機版一排5個 */
-            gap: 8px;
-            padding-bottom: 80px; /* 預留底部按鈕空間 */
+            grid-template-columns: repeat(6, 1fr); /* 固定6欄 */
+            gap: 6px; /* 間距稍微縮小以容納更多 */
+            padding-bottom: 80px;
+            max-width: 600px; /* 限制最大寬度讓電腦版也保持6欄 */
+            margin: 0 auto; /* 置中 */
         }
         
-        @media (min-width: 600px) {
-            .seat-grid { grid-template-columns: repeat(10, 1fr); } /* 電腦版一排10個 */
-        }
-
         .seat-box {
             aspect-ratio: 1;
             background: white;
@@ -113,14 +111,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            overflow: hidden; /* 防止放大溢出 */
         }
         
         .seat-box.filled {
             border-style: solid;
             border-color: var(--accent-color);
             background: #fff0f1;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         .seat-number {
@@ -130,6 +129,26 @@
             font-size: 0.7rem;
             color: #999;
             font-weight: bold;
+            z-index: 1;
+        }
+        
+        /* 動物頭像放大效果 */
+        .seat-box .icon {
+            font-size: 0; /* 預設隱藏 */
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 2;
+        }
+        
+        .seat-box.filled .icon {
+            font-size: 2.8rem; /* 放大顯示 */
+            display: block;
+            line-height: 1;
+            transform: scale(1);
+        }
+        
+        /* 選中時的動畫效果 */
+        .seat-box.filled:active .icon {
+             transform: scale(0.8);
         }
 
         /* 底部浮動按鈕 */
@@ -143,6 +162,7 @@
             justify-content: center;
             gap: 20px;
             backdrop-filter: blur(5px);
+            z-index: 30;
         }
 
         .action-btn {
@@ -159,8 +179,8 @@
         /* --- 2. 比賽畫面 --- */
         #race-screen {
             background: var(--grass-color);
-            overflow-y: auto; /* 允許垂直滾動 */
-            display: block; /* 覆蓋 flex */
+            overflow-y: auto;
+            display: block;
         }
 
         .race-header {
@@ -177,25 +197,20 @@
         }
 
         .track-container {
-            margin-top: 70px; /* Header 高度 */
+            margin-top: 70px;
             padding-bottom: 50px;
             position: relative;
             min-height: 100vh;
         }
 
-        /* 終點線樣式優化 */
         .finish-line {
             position: absolute;
-            right: 10%; /* 距離右邊 10% 的位置 */
+            right: 10%;
             top: 0;
             bottom: 0;
             width: 15px;
             background-image: repeating-linear-gradient(
-                45deg,
-                #000,
-                #000 10px,
-                #fff 10px,
-                #fff 20px
+                45deg, #000, #000 10px, #fff 10px, #fff 20px
             );
             z-index: 1;
             box-shadow: -2px 0 5px rgba(0,0,0,0.2);
@@ -223,8 +238,8 @@
         .racer {
             font-size: 35px;
             position: absolute;
-            left: 10px; /* 起點 */
-            transition: left 0.1s linear; /* 平滑移動 */
+            left: 10px;
+            transition: left 0.1s linear;
             z-index: 10;
             display: flex;
             flex-direction: column;
@@ -328,7 +343,7 @@
     </div>
 
     <script>
-        // --- 設定 ---
+        // --- 設定：共30隻動物 ---
         const animals = [
             { icon: '🐶', name: 'Doge' },
             { icon: '🐱', name: 'Cat' },
@@ -341,19 +356,30 @@
             { icon: '🐨', name: 'Koala' },
             { icon: '🐯', name: 'Tiger' },
             { icon: '🦁', name: 'Lion' },
+            { icon: '🐮', name: 'Cow' },
             { icon: '🐷', name: 'Pig' },
             { icon: '🐸', name: 'Frog' },
             { icon: '🐵', name: 'Monkey' },
-            { icon: '🐔', name: 'Chicken' }, // 新增
-            { icon: '🦆', name: 'Duck' },    // 新增
-            { icon: '🐴', name: 'Horse' },   // 新增
-            { icon: '🦄', name: 'Unicorn' }, // 新增
-            { icon: '🦖', name: 'Dino' }     // 新增
+            { icon: '🐔', name: 'Chicken' }, 
+            { icon: '🦆', name: 'Duck' },    
+            { icon: '🦅', name: 'Eagle' },
+            { icon: '🦉', name: 'Owl' },
+            { icon: '🦇', name: 'Bat' },
+            { icon: '🐺', name: 'Wolf' },
+            { icon: '🐗', name: 'Boar' },
+            { icon: '🐴', name: 'Horse' },   
+            { icon: '🦄', name: 'Unicorn' }, 
+            { icon: '🦓', name: 'Zebra' },
+            { icon: '🦒', name: 'Giraffe' },
+            { icon: '🐘', name: 'Elephant' },
+            { icon: '🦏', name: 'Rhino' },
+            { icon: '🐊', name: 'Croc' },
+            { icon: '🦖', name: 'Dino' }     
         ];
 
         const TOTAL_SEATS = 30;
-        let seatAssignments = Array(TOTAL_SEATS).fill(null); // 儲存每個座位的動物索引
-        let currentAnimalIndex = 0; // 當前選中的動物工具
+        let seatAssignments = Array(TOTAL_SEATS).fill(null); 
+        let currentAnimalIndex = 0; 
         
         // 賽跑邏輯變數
         let racers = [];
@@ -377,13 +403,12 @@
 
         function selectTool(idx, btnElement) {
             currentAnimalIndex = idx;
-            // 更新 UI 樣式
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
             btnElement.classList.add('active');
             currentToolDisplay.textContent = animals[idx].icon;
         }
 
-        // 2. 建立座位網格
+        // 2. 建立座位網格 (會自動依照 CSS 排成 6x5)
         for (let i = 0; i < TOTAL_SEATS; i++) {
             const box = document.createElement('div');
             box.className = 'seat-box';
@@ -397,7 +422,6 @@
             const box = document.getElementById(`seat-${index}`);
             const iconSpan = box.querySelector('.icon');
 
-            // 邏輯：如果該格子已經是當前動物，則清除；否則設為當前動物
             if (seatAssignments[index] === currentAnimalIndex) {
                 seatAssignments[index] = null;
                 iconSpan.textContent = '';
@@ -427,12 +451,10 @@
         // --- 賽跑系統 ---
 
         function initRace() {
-            // 切換畫面
             document.getElementById('setup-screen').classList.add('hidden');
             document.getElementById('race-screen').classList.remove('hidden');
 
             const trackContainer = document.getElementById('trackContainer');
-            // 保留終點線，清除舊跑道
             const finishLine = trackContainer.querySelector('.finish-line');
             trackContainer.innerHTML = '';
             trackContainer.appendChild(finishLine);
@@ -441,12 +463,10 @@
             finishedCount = 0;
             rankHistory = [];
 
-            // 只為有分配動物的座位建立跑道
             seatAssignments.forEach((animalIdx, seatIdx) => {
                 if (animalIdx !== null) {
                     const animal = animals[animalIdx];
                     
-                    // 建立 DOM
                     const lane = document.createElement('div');
                     lane.className = 'lane';
                     
@@ -456,7 +476,7 @@
                     
                     lane.appendChild(laneNumber = document.createElement('span'));
                     laneNumber.className = 'lane-number';
-                    laneNumber.textContent = seatIdx + 1; // 顯示跑道編號
+                    laneNumber.textContent = seatIdx + 1; 
                     lane.appendChild(laneNumber);
 
                     lane.appendChild(racerDiv);
@@ -466,7 +486,7 @@
                         id: seatIdx + 1,
                         element: racerDiv,
                         icon: animal.icon,
-                        position: 0, // 0 to 100+
+                        position: 0, 
                         speed: 0,
                         finished: false
                     });
@@ -494,14 +514,8 @@
         }
 
         function startEngine() {
-            // 終點線位置設定為 90% (right: 10%)
-            // 動物需要跑超過這個數值才算贏
             const FINISH_POINT = 90; 
             
-            // 重要修改：讓動物能跑出螢幕外一點點，確保視覺上穿過線
-            // CSS 中 finish-line 是 right: 10%。
-            // 我們讓 position 跑到 92~95 左右才停止。
-
             raceInterval = setInterval(() => {
                 const activeRacers = racers.filter(r => !r.finished);
                 
@@ -513,33 +527,27 @@
                 racers.forEach(racer => {
                     if (racer.finished) return;
 
-                    // 隨機變速 (模擬真實賽跑的不穩定性)
                     if (Math.random() < 0.1) {
-                        racer.speed = Math.random() * 0.5 + 0.2; // 基礎速度
-                        if (Math.random() < 0.05) racer.speed += 1.0; // 暴衝
-                        if (Math.random() < 0.05) racer.speed *= 0.1; // 停頓
+                        racer.speed = Math.random() * 0.5 + 0.2; 
+                        if (Math.random() < 0.05) racer.speed += 1.0; 
+                        if (Math.random() < 0.05) racer.speed *= 0.1; 
                     }
 
                     racer.position += racer.speed;
-
-                    // 繪製位置 (left %)
-                    // 為了視覺修正，我們讓它最多跑到 94%
                     racer.element.style.left = racer.position + '%';
 
-                    // 衝線判定
                     if (racer.position >= FINISH_POINT) {
                         racer.finished = true;
                         finishedCount++;
                         rankHistory.push(racer);
                         
-                        // 第一名特效
                         if (finishedCount === 1) {
                             document.getElementById('status-text').textContent = `Winner: No.${racer.id} ${racer.icon}`;
                         }
                     }
                 });
 
-            }, 20); // 50 FPS
+            }, 20); 
         }
 
         function endRace() {
@@ -555,13 +563,11 @@
             document.getElementById('winner-icon').textContent = winner.icon;
             document.getElementById('winner-name').textContent = `No. ${winner.id}`;
             
-            // 生成排名表
             const list = document.getElementById('rankList');
             list.innerHTML = '';
             rankHistory.forEach((r, i) => {
                 const item = document.createElement('div');
                 item.className = 'rank-item';
-                // 前三名加獎牌
                 let prefix = `#${i + 1}`;
                 if(i===0) prefix = '🥇';
                 if(i===1) prefix = '🥈';
